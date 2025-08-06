@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tools CRM</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useContext, createContext } = React;
+
+        // Create a context for the app state
+        const AppContext = createContext();
+
+        // Toast notification component
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    onClose();
+                }, 3000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            
+            return (
+                <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center`}>
+                    <i className={`fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2`}></i>
+                    {message}
+                </div>
+            );
+        };
+
+        // Navigation component
+        const Navigation = ({ currentScreen, setCurrentScreen, isAdmin }) => {
+            return (
+                <nav className="bg-indigo-600 text-white shadow-lg">
+                    <div className="container mx-auto px-4">
+                        <div className="flex justify-between items-center py-3">
+                            <h1 className="text-xl font-bold">AI Tools CRM</h1>
+                            <div className="flex space-x-1">
+                                <button 
+                                    onClick={() => setCurrentScreen('dashboard')} 
+                                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentScreen === 'dashboard' ? 'bg-indigo-800' : 'hover:bg-indigo-700'}`}
+                                >
+                                    <i className="fas fa-home mr-1"></i> Dashboard
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentScreen('tools')} 
+                                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentScreen === 'tools' ? 'bg-indigo-800' : 'hover:bg-indigo-700'}`}
+                                >
+                                    <i className="fas fa-tools mr-1"></i> Tools
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentScreen('updates')} 
+                                    className={`px-3 py-2 rounded-md text-sm font-medium ${currentScreen === 'updates' ? 'bg-indigo-800' : 'hover:bg-indigo-700'}`}
+                                >
+                                    <i className="fas fa-sync-alt mr-1"></i> Updates
+                                </button>
+                                {isAdmin && (
+                                    <button 
+                                        onClick={() => setCurrentScreen('admin')} 
+                                        className={`px-3 py-2 rounded-md text-sm font-medium ${currentScreen === 'admin' ? 'bg-indigo-800' : 'hover:bg-indigo-700'}`}
+                                    >
+                                        <i className="fas fa-cog mr-1"></i> Admin
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+
+        // Dashboard Screen
+        const Dashboard = () => {
+            const { tools, updates, categories } = useContext(AppContext);
+            
+            // Calculate total tools
+            const totalTools = tools.length;
+            
+            // Calculate recent updates (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const recentUpdates = updates.filter(update => 
+                new Date(update.date) >= thirtyDaysAgo
+            ).length;
+            
+            // Tools by category
+            const toolsByCategory = categories.map(category => {
+                const categoryTools = tools.filter(tool => tool.category === category.id);
+                return {
+                    ...category,
+                    count: categoryTools.length
+                };
+            });
+
+            return (
+                <div className="container mx-auto px-4 py-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                                    <i className="fas fa-tools text-2xl"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-lg font-medium text-gray-500">Total Tools</h3>
+                                    <p className="text-2xl font-bold">{totalTools}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex items-center">
+                                <div className="p-3 rounded-full bg-green-100 text-green-600">
+                                    <i className="fas fa-sync-alt text-2xl"></i>
+                                </div>
+                                <div className="ml-4">
+                                    <h3 className="text-lg font-medium text-gray-500">Recent Updates</h3>
+                                    <p className="text-2xl font-bold">{recentUpdates}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg shadow p-6 mb-8">
+                        <h3 className="text-lg font-medium text-gray-800 mb-4">Tools by Category</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {toolsByCategory.map(category => (
+                                <div key={category.id} className="border rounded-lg p-4 text-center">
+                                    <div className="text-3xl mb-2">{category.icon}</div>
+                                    <h4 className="font-medium">{category.name}</h4>
+                                    <p className="text-sm text-gray-500">{category.count} tools</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-medium text-gray-800 mb-4">Latest Updates</h3>
+                        {updates.length === 0 ? (
+                            <p className="text-gray-500">No updates found.</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {updates.slice(0, 5).map(update => {
+                                    const tool = tools.find(t => t.id === update.toolId);
+                                    return (
+                                        <div key={update.id} className="border-b pb-4 last:border-0 last:pb-0">
+                                            <div className="flex justify-between">
+                                                <h4 className="font-medium">{update.title}</h4>
+                                                <span className="text-sm text-gray-500">{new Date(update.date).toLocaleDateString()}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1">{update.description}</p>
+                                            {tool && (
+                                                <div className="mt-2">
+                                                    <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
+                                                        {tool.name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Tool Card Component
+        const ToolCard = ({ tool, onViewDetails }) => {
+            const getCategoryIcon = (categoryId) => {
+                const icons = {
+                    'image': '🖼️',
+                    'video': '🎬',
+                    'voice': '🎤',
+                    'text': '📝',
+                    'code': '💻',
+                    'data': '📊'
+                };
+                return icons[categoryId] || '🔧';
+            };
+
+            return (
+                <div className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => onViewDetails(tool.id)}>
+                    <div className="flex items-start">
+                        <div className="text-3xl mr-3">{getCategoryIcon(tool.category)}</div>
+                        <div className="flex-grow">
+                            <h3 className="font-medium text-gray-800">{tool.name}</h3>
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{tool.description}</p>
+                            <div className="mt-2 flex items-center">
+                                <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded-full">
+                                    {tool.pricing}
+                                </span>
+                                {tool.featured && (
+                                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full ml-2">
+                                        Featured
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Tools Screen
+        const ToolsScreen = () => {
+            const { tools, categories } = useContext(AppContext);
+            const [selectedCategory, setSelectedCategory] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [viewingTool, setViewingTool] = useState(null);
+            
+            // Get unique categories for filter
+            const filterCategories = [
+                { id: 'all', name: 'All Categories' },
+                ...categories
+            ];
+            
+            // Filter tools based on search and category
+            const filteredTools = tools.filter(tool => {
+                const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    tool.description.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            // Get tool by ID
+            const getToolById = (id) => {
+                return tools.find(tool => tool.id === id);
+            };
+
+            // Get category name by ID
+            const getCategoryName = (id) => {
+                const category = categories.find(c => c.id === id);
+                return category ? category.name : 'Unknown';
+            };
+
+            // Get updates for a tool
+            const getToolUpdates = (toolId) => {
+                const { updates } = useContext(AppContext);
+                return updates.filter(update => update.toolId === toolId);
+            };
+
+            return (
+                <div className="container mx-auto px-4 py-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">AI Tools</h2>
+                    </div>
+                    
+                    {/* Filters */}
+                    <div className="bg-white rounded-lg shadow p-4 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                                <input
+                                    type="text"
+                                    placeholder="Search tools by name or description..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                >
+                                    {filterCategories.map(category => (
+                                        <option key={category.id} value={category.id}>{category.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Tools List */}
+                    {filteredTools.length === 0 ? (
+                        <div className="bg-white rounded-lg shadow p-6 text-center">
+                            <p className="text-gray-500">No tools found matching your criteria.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredTools.map(tool => (
+                                <ToolCard 
+                                    key={tool.id} 
+                                    tool={tool} 
+                                    onViewDetails={setViewingTool}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    
+                    {/* Tool Details Modal */}
+                    {viewingTool && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+                                <div className="p-6 border-b">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-800">{viewingTool.name}</h3>
+                                            <p className="text-gray-600 mt-1">{getCategoryName(viewingTool.category)}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setViewingTool(null)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex-grow overflow-y-auto p-6">
+                                    <div className="mb-6">
+                                        <h4 className="text-lg font-medium text-gray-800 mb-2">Description</h4>
+                                        <p className="text-gray-600">{viewingTool.description}</p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                        <div>
+                                            <h4 className="text-lg font-medium text-gray-800 mb-2">Details</h4>
+                                            <div className="space-y-2">
+                                                <div className="flex">
+                                                    <span className="text-gray-500 w-24">Pricing:</span>
+                                                    <span className="font-medium">{viewingTool.pricing}</span>
+                                                </div>
+                                                <div className="flex">
+                                                    <span className="text-gray-500 w-24">Website:</span>
+                                                    <a href={viewingTool.website} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                                        Visit Site
+                                                    </a>
+                                                </div>
+                                                {viewingTool.featured && (
+                                                    <div className="flex">
+                                                        <span className="text-gray-500 w-24">Status:</span>
+                                                        <span className="text-yellow-600 font-medium">Featured Tool</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <h4 className="text-lg font-medium text-gray-800 mb-2">Key Features</h4>
+                                            <ul className="list-disc pl-5 text-gray-600 space-y-1">
+                                                {viewingTool.features.map((feature, index) => (
+                                                    <li key={index}>{feature}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 className="text-lg font-medium text-gray-800 mb-2">Recent Updates</h4>
+                                        {getToolUpdates(viewingTool.id).length === 0 ? (
+                                            <p className="text-gray-500">No recent updates for this tool.</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {getToolUpdates(viewingTool.id).map(update => (
+                                                    <div key={update.id} className="border-l-4 border-indigo-500 pl-4 py-1">
+                                                        <div className="flex justify-between">
+                                                            <h5 className="font-medium">{update.title}</h5>
+                                                            <span className="text-sm text-gray-500">{new Date(update.date).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-600 mt-1">{update.description}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Updates Screen
+        const UpdatesScreen = () => {
+            const { updates, tools } = useContext(AppContext);
+            
+            // Get tool name by ID
+            const getToolName = (id) => {
+                const tool = tools.find(t => t.id === id);
+                return tool ? tool.name : 'Unknown Tool';
+            };
+
+            // Sort updates by date (newest first)
+            const sortedUpdates = [...updates].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            );
+
+            return (
+                <div className="container mx-auto px-4 py-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Tool Updates</h2>
+                    
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        {sortedUpdates.length === 0 ? (
+                            <div className="p-6 text-center">
+                                <p className="text-gray-500">No updates found.</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-200">
+                                {sortedUpdates.map(update => (
+                                    <div key={update.id} className="p-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="text-lg font-medium text-gray-800">{update.title}</h3>
+                                                <div className="flex items-center mt-1 text-sm text-gray-500">
+                                                    <span>{getToolName(update.toolId)}</span>
+                                                    <span className="mx-2">•</span>
+                                                    <span>{new Date(update.date).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
+                                                {update.type}
+                                            </span>
+                                        </div>
+                                        <p className="mt-3 text-gray-600">{update.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Admin Screen
+        const AdminScreen = () => {
+            const { tools, addTool, deleteTool, updates, addUpdate, categories } = useContext(AppContext);
+            const [showToolForm, setShowToolForm] = useState(false);
+            const [showUpdateForm, setShowUpdateForm] = useState(false);
+            const [editingTool, setEditingTool] = useState(null);
+            
+            // Tool form state
+            const [toolFormData, setToolFormData] = useState({
+                name: '',
+                description: '',
+                category: 'text',
+                pricing: 'Free',
+                website: '',
+                featured: false,
+                features: ['', '', '']
+            });
+
+            // Update form state
+            const [updateFormData, setUpdateFormData] = useState({
+                toolId: '',
+                title: '',
+                description: '',
+                type: 'Improvement',
+                date: new Date().toISOString().split('T')[0]
+            });
+
+            // Handle tool form input changes
+            const handleToolInputChange = (e) => {
+                const { name, value, type, checked } = e.target;
+                if (name === 'features') {
+                    // Handle features array
+                    const features = [...toolFormData.features];
+                    features[parseInt(value)] = e.target.value;
+                    setToolFormData(prev => ({ ...prev, features }));
+                } else {
+                    setToolFormData(prev => ({ 
+                        ...prev, 
+                        [name]: type === 'checkbox' ? checked : value 
+                    }));
+                }
+            };
+
+            // Handle update form input changes
+            const handleUpdateInputChange = (e) => {
+                const { name, value } = e.target;
+                setUpdateFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            // Handle tool form submission
+            const handleToolSubmit = (e) => {
+                e.preventDefault();
+                
+                // Filter out empty features
+                const features = toolFormData.features.filter(feature => feature.trim() !== '');
+                
+                if (editingTool) {
+                    // In a real app, we would have an update function
+                    // For now, we'll just show a success message
+                    alert('Tool updated successfully!');
+                } else {
+                    addTool({
+                        ...toolFormData,
+                        features
+                    });
+                }
+                resetToolForm();
+            };
+
+            // Handle update form submission
+            const handleUpdateSubmit = (e) => {
+                e.preventDefault();
+                addUpdate(updateFormData);
+                resetUpdateForm();
+            };
+
+            // Reset tool form
+            const resetToolForm = () => {
+                setToolFormData({
+                    name: '',
+                    description: '',
+                    category: 'text',
+                    pricing: 'Free',
+                    website: '',
+                    featured: false,
+                    features: ['', '', '']
+                });
+                setEditingTool(null);
+                setShowToolForm(false);
+            };
+
+            // Reset update form
+            const resetUpdateForm = () => {
+                setUpdateFormData({
+                    toolId: '',
+                    title: '',
+                    description: '',
+                    type: 'Improvement',
+                    date: new Date().toISOString().split('T')[0]
+                });
+                setShowUpdateForm(false);
+            };
+
+            // Edit tool
+            const handleEditTool = (tool) => {
+                // Pad features array to ensure we have 3 items
+                const features = [...tool.features];
+                while (features.length < 3) {
+                    features.push('');
+                }
+                
+                setToolFormData({
+                    ...tool,
+                    features
+                });
+                setEditingTool(tool);
+                setShowToolForm(true);
+            };
+
+            return (
+                <div className="container mx-auto px-4 py-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Admin Panel</h2>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Tools Management */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-gray-800">Tools Management</h3>
+                                <button 
+                                    onClick={() => setShowToolForm(true)}
+                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center text-sm"
+                                >
+                                    <i className="fas fa-plus mr-2"></i> Add Tool
+                                </button>
+                            </div>
+                            
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {tools.map(tool => (
+                                            <tr key={tool.id}>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    {tool.name}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                    {categories.find(c => c.id === tool.category)?.name || 'Unknown'}
+                                                </td>
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                    <button 
+                                                        onClick={() => handleEditTool(tool)}
+                                                        className="text-blue-600 hover:text-blue-800 mr-3"
+                                                        title="Edit"
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => deleteTool(tool.id)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                        title="Delete"
+                                                    >
+                                                        <i className="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        {/* Updates Management */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-gray-800">Updates Management</h3>
+                                <button 
+                                    onClick={() => setShowUpdateForm(true)}
+                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center text-sm"
+                                >
+                                    <i className="fas fa-plus mr-2"></i> Add Update
+                                </button>
+                            </div>
+                            
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tool</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {updates.slice(0, 5).map(update => {
+                                            const tool = tools.find(t => t.id === update.toolId);
+                                            return (
+                                                <tr key={update.id}>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                        {update.title}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                        {tool ? tool.name : 'Unknown'}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                        {new Date(update.date).toLocaleDateString()}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Add/Edit Tool Modal */}
+                    {showToolForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <div className="p-6">
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4">
+                                        {editingTool ? 'Edit Tool' : 'Add New Tool'}
+                                    </h3>
+                                    <form onSubmit={handleToolSubmit}>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                                <input
+                                                    type="text"
+                                                    name="name"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={toolFormData.name}
+                                                    onChange={handleToolInputChange}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                                                <textarea
+                                                    name="description"
+                                                    required
+                                                    rows="3"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={toolFormData.description}
+                                                    onChange={handleToolInputChange}
+                                                ></textarea>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                                                    <select
+                                                        name="category"
+                                                        required
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                        value={toolFormData.category}
+                                                        onChange={handleToolInputChange}
+                                                    >
+                                                        {categories.map(category => (
+                                                            <option key={category.id} value={category.id}>
+                                                                {category.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pricing *</label>
+                                                    <select
+                                                        name="pricing"
+                                                        required
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                        value={toolFormData.pricing}
+                                                        onChange={handleToolInputChange}
+                                                    >
+                                                        <option value="Free">Free</option>
+                                                        <option value="Freemium">Freemium</option>
+                                                        <option value="Paid">Paid</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                                                <input
+                                                    type="url"
+                                                    name="website"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={toolFormData.website}
+                                                    onChange={handleToolInputChange}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Key Features</label>
+                                                {toolFormData.features.map((feature, index) => (
+                                                    <input
+                                                        key={index}
+                                                        type="text"
+                                                        name="features"
+                                                        value={feature}
+                                                        onChange={handleToolInputChange}
+                                                        data-index={index}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md mb-2"
+                                                        placeholder={`Feature ${index + 1}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    name="featured"
+                                                    className="h-4 w-4 text-indigo-600 rounded"
+                                                    checked={toolFormData.featured}
+                                                    onChange={handleToolInputChange}
+                                                />
+                                                <label className="ml-2 block text-sm text-gray-700">
+                                                    Featured Tool
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end space-x-3 mt-6">
+                                            <button
+                                                type="button"
+                                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                                onClick={resetToolForm}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                            >
+                                                {editingTool ? 'Update' : 'Add'} Tool
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Add Update Modal */}
+                    {showUpdateForm && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+                                <div className="p-6">
+                                    <h3 className="text-lg font-medium text-gray-800 mb-4">Add New Update</h3>
+                                    <form onSubmit={handleUpdateSubmit}>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Tool *</label>
+                                                <select
+                                                    name="toolId"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={updateFormData.toolId}
+                                                    onChange={handleUpdateInputChange}
+                                                >
+                                                    <option value="">Select a tool</option>
+                                                    {tools.map(tool => (
+                                                        <option key={tool.id} value={tool.id}>
+                                                            {tool.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                                                <input
+                                                    type="text"
+                                                    name="title"
+                                                    required
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={updateFormData.title}
+                                                    onChange={handleUpdateInputChange}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
+                                                <textarea
+                                                    name="description"
+                                                    required
+                                                    rows="3"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    value={updateFormData.description}
+                                                    onChange={handleUpdateInputChange}
+                                                ></textarea>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                                    <select
+                                                        name="type"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                        value={updateFormData.type}
+                                                        onChange={handleUpdateInputChange}
+                                                    >
+                                                        <option value="New Feature">New Feature</option>
+                                                        <option value="Improvement">Improvement</option>
+                                                        <option value="Bug Fix">Bug Fix</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        name="date"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                        value={updateFormData.date}
+                                                        onChange={handleUpdateInputChange}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end space-x-3 mt-6">
+                                            <button
+                                                type="button"
+                                                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                                onClick={resetUpdateForm}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                            >
+                                                Add Update
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [currentScreen, setCurrentScreen] = useState('dashboard');
+            const [toast, setToast] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(true); // Default to admin for now
+            
+            // Initialize state from localStorage or with defaults
+            const [categories, setCategories] = useState(() => {
+                const savedCategories = localStorage.getItem('aiToolCategories');
+                if (savedCategories) {
+                    return JSON.parse(savedCategories);
+                }
+                
+                // Default categories
+                return [
+                    { id: 'image', name: 'Image Generation', icon: '🖼️' },
+                    { id: 'video', name: 'Video Generation', icon: '🎬' },
+                    { id: 'voice', name: 'Voice Generation', icon: '🎤' },
+                    { id: 'text', name: 'Text Generation', icon: '📝' },
+                    { id: 'code', name: 'Code Generation', icon: '💻' },
+                    { id: 'data', name: 'Data Analysis', icon: '📊' }
+                ];
+            });
+            
+            const [tools, setTools] = useState(() => {
+                const savedTools = localStorage.getItem('aiTools');
+                if (savedTools) {
+                    return JSON.parse(savedTools);
+                }
+                
+                // Add fake data if no saved data exists
+                return [
+                    {
+                        id: '1',
+                        name: 'Midjourney',
+                        description: 'AI-powered image generation tool that creates stunning artwork from text prompts. Known for its artistic style and high-quality outputs.',
+                        category: 'image',
+                        pricing: 'Paid',
+                        website: 'https://www.midjourney.com',
+                        featured: true,
+                        features: [
+                            'High-quality artistic image generation',
+                            'Style customization and fine-tuning',
+                            'Community gallery and inspiration'
+                        ]
+                    },
+                    {
+                        id: '2',
+                        name: 'DALL-E 3',
+                        description: 'OpenAI\'s advanced image generation model that creates detailed images from text descriptions with improved understanding and accuracy.',
+                        category: 'image',
+                        pricing: 'Paid',
+                        website: 'https://openai.com/dall-e-3',
+                        featured: true,
+                        features: [
+                            'Precise text-to-image generation',
+                            'Integration with ChatGPT',
+                            'Safety filters and content guidelines'
+                        ]
+                    },
+                    {
+                        id: '3',
+                        name: 'Stable Diffusion',
+                        description: 'Open-source image generation model that can be run locally. Offers flexibility and customization for developers and artists.',
+                        category: 'image',
+                        pricing: 'Free',
+                        website: 'https://stability.ai',
+                        featured: false,
+                        features: [
+                            'Open-source and customizable',
+                            'Local deployment options',
+                            'Large community and model variants'
+                        ]
+                    },
+                    {
+                        id: '4',
+                        name: 'Runway ML',
+                        description: 'Creative suite for video generation and editing with AI tools. Generate videos from text, images, or existing video clips.',
+                        category: 'video',
+                        pricing: 'Freemium',
+                        website: 'https://runwayml.com',
+                        featured: true,
+                        features: [
+                            'Text-to-video generation',
+                            'Video editing with AI tools',
+                            'Motion brush and camera controls'
+                        ]
+                    },
+                    {
+                        id: '5',
+                        name: 'Synthesia',
+                        description: 'AI video generation platform that creates professional videos with AI avatars. Ideal for training videos and presentations.',
+                        category: 'video',
+                        pricing: 'Paid',
+                        website: 'https://www.synthesia.io',
+                        featured: false,
+                        features: [
+                            'AI avatar video generation',
+                            'Multi-language support',
+                            'Template library for quick creation'
+                        ]
+                    },
+                    {
+                        id: '6',
+                        name: 'ElevenLabs',
+                        description: 'Voice synthesis platform that creates realistic AI voices with emotion and intonation. Supports multiple languages and voice cloning.',
+                        category: 'voice',
+                        pricing: 'Freemium',
+                        website: 'https://elevenlabs.io',
+                        featured: true,
+                        features: [
+                            'Realistic voice synthesis',
+                            'Voice cloning capabilities',
+                            'Emotion and intonation control'
+                        ]
+                    },
+                    {
+                        id: '7',
+                        name: 'Descript',
+                        description: 'Audio and video editing tool that uses AI to transcribe, edit, and enhance media. Edit podcasts and videos by editing text.',
+                        category: 'voice',
+                        pricing: 'Freemium',
+                        website: 'https://www.descript.com',
+                        featured: false,
+                        features: [
+                            'Text-based audio/video editing',
+                            'Overdub voice cloning',
+                            'Podcast publishing tools'
+                        ]
+                    },
+                    {
+                        id: '8',
+                        name: 'ChatGPT',
+                        description: 'Advanced language model by OpenAI that can generate human-like text, answer questions, and assist with various tasks.',
+                        category: 'text',
+                        pricing: 'Freemium',
+                        website: 'https://chat.openai.com',
+                        featured: true,
+                        features: [
+                            'Conversational AI assistant',
+                            'Code generation and explanation',
+                            'Multiple model versions (GPT-3.5, GPT-4)'
+                        ]
+                    },
+                    {
+                        id: '9',
+                        name: 'Claude',
+                        description: 'AI assistant by Anthropic focused on helpful, honest, and harmless interactions. Excels at analysis and long-form content.',
+                        category: 'text',
+                        pricing: 'Freemium',
+                        website: 'https://claude.ai',
+                        featured: false,
+                        features: [
+                            'Large context window',
+                            'Document analysis capabilities',
+                            'Constitutional AI approach'
+                        ]
+                    },
+                    {
+                        id: '10',
+                        name: 'GitHub Copilot',
+                        description: 'AI pair programmer that helps you write better code. Provides autocomplete suggestions and entire function suggestions.',
+                        category: 'code',
+                        pricing: 'Paid',
+                        website: 'https://github.com/features/copilot',
+                        featured: true,
+                        features: [
+                            'Code autocomplete and suggestions',
+                            'Multi-language support',
+                            'Integration with popular IDEs'
+                        ]
+                    },
+                    {
+                        id: '11',
+                        name: 'Tabnine',
+                        description: 'AI code completion tool that works with your favorite IDE. Learns from your code patterns to provide better suggestions.',
+                        category: 'code',
+                        pricing: 'Freemium',
+                        website: 'https://tabnine.com',
+                        featured: false,
+                        features: [
+                            'Personalized code suggestions',
+                            'Team-wide knowledge sharing',
+                            'Privacy-focused and on-premises options'
+                        ]
+                    },
+                    {
+                        id: '12',
+                        name: 'Tableau',
+                        description: 'Data visualization and business intelligence platform with AI-powered analytics. Transform raw data into actionable insights.',
+                        category: 'data',
+                        pricing: 'Paid',
+                        website: 'https://www.tableau.com',
+                        featured: false,
+                        features: [
+                            'Interactive data visualization',
+                            'AI-powered analytics and predictions',
+                            'Dashboard and report sharing'
+                        ]
+                    }
+                ];
+            });
+            
+            const [updates, setUpdates] = useState(() => {
+                const savedUpdates = localStorage.getItem('aiToolUpdates');
+                if (savedUpdates) {
+                    return JSON.parse(savedUpdates);
+                }
+                
+                // Add fake data if no saved data exists
+                const today = new Date();
+                const oneWeekAgo = new Date(today);
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                const twoWeeksAgo = new Date(today);
+                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                const oneMonthAgo = new Date(today);
+                oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+                
+                return [
+                    { 
+                        id: '1', 
+                        toolId: '1', 
+                        title: 'New Style Algorithms', 
+                        description: 'Added new style algorithms for more diverse artistic outputs and improved prompt understanding.',
+                        type: 'New Feature',
+                        date: today.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '2', 
+                        toolId: '2', 
+                        title: 'Higher Resolution Support', 
+                        description: 'Increased maximum resolution for generated images and improved detail rendering.',
+                        type: 'Improvement',
+                        date: today.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '3', 
+                        toolId: '4', 
+                        title: 'Gen-2 Model Release', 
+                        description: 'Released the new Gen-2 model with significantly improved video quality and longer generation times.',
+                        type: 'New Feature',
+                        date: oneWeekAgo.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '4', 
+                        toolId: '6', 
+                        title: 'Multilingual Voice Support', 
+                        description: 'Added support for 10 new languages with improved accent accuracy and natural speech patterns.',
+                        type: 'New Feature',
+                        date: oneWeekAgo.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '5', 
+                        toolId: '8', 
+                        title: 'GPT-4 Turbo Integration', 
+                        description: 'Integrated the new GPT-4 Turbo model with improved reasoning capabilities and reduced latency.',
+                        type: 'Improvement',
+                        date: twoWeeksAgo.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '6', 
+                        toolId: '10', 
+                        title: 'IDE Integration Updates', 
+                        description: 'Improved integration with VS Code and other popular IDEs with better context awareness.',
+                        type: 'Improvement',
+                        date: twoWeeksAgo.toISOString().split('T')[0] 
+                    },
+                    { 
+                        id: '7', 
+                        toolId: '3', 
+                        title: 'Performance Optimization', 
+                        description: 'Fixed memory leaks and improved generation speed for local deployments.',
+                        type: 'Bug Fix',
+                        date: oneMonthAgo.toISOString().split('T')[0] 
+                    }
+                ];
+            });
+            
+            // Save to localStorage whenever state changes
+            useEffect(() => {
+                localStorage.setItem('aiToolCategories', JSON.stringify(categories));
+            }, [categories]);
+            
+            useEffect(() => {
+                localStorage.setItem('aiTools', JSON.stringify(tools));
+            }, [tools]);
+            
+            useEffect(() => {
+                localStorage.setItem('aiToolUpdates', JSON.stringify(updates));
+            }, [updates]);
+            
+            // Show toast notification
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+            };
+            
+            // Tool functions
+            const addTool = (tool) => {
+                const newTool = {
+                    ...tool,
+                    id: Date.now().toString()
+                };
+                setTools([...tools, newTool]);
+                showToast('Tool added successfully!');
+            };
+            
+            const deleteTool = (id) => {
+                if (window.confirm('Are you sure you want to delete this tool?')) {
+                    setTools(tools.filter(tool => tool.id !== id));
+                    // Also delete updates for this tool
+                    setUpdates(updates.filter(update => update.toolId !== id));
+                    showToast('Tool deleted successfully!');
+                }
+            };
+            
+            // Update functions
+            const addUpdate = (update) => {
+                const newUpdate = {
+                    ...update,
+                    id: Date.now().toString()
+                };
+                setUpdates([...updates, newUpdate]);
+                showToast('Update added successfully!');
+            };
+
+            return (
+                <AppContext.Provider value={{
+                    categories,
+                    tools,
+                    updates,
+                    addTool,
+                    deleteTool,
+                    addUpdate,
+                    showToast
+                }}>
+                    <div className="flex flex-col min-h-screen">
+                        <Navigation currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} isAdmin={isAdmin} />
+                        <main className="flex-grow">
+                            {currentScreen === 'dashboard' && <Dashboard />}
+                            {currentScreen === 'tools' && <ToolsScreen />}
+                            {currentScreen === 'updates' && <UpdatesScreen />}
+                            {currentScreen === 'admin' && isAdmin && <AdminScreen />}
+                        </main>
+                        <footer className="bg-gray-100 py-4 text-center text-gray-600 text-sm">
+                            AI Tools CRM - Local-Only Version
+                        </footer>
+                    </div>
+                    
+                    {toast && (
+                        <Toast 
+                            message={toast.message} 
+                            type={toast.type} 
+                            onClose={() => setToast(null)} 
+                        />
+                    )}
+                </AppContext.Provider>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
